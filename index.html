@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「過度保護的愛」- 父母教養模擬器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stat-bar-transition {
+            transition: width 0.5s ease-in-out, background-color 0.5s ease;
+        }
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="app" class="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden fade-in">
+        
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white p-6 text-center">
+            <h1 class="text-2xl md:text-3xl font-bold mb-2">🚁 「過度保護的愛」模擬器</h1>
+            <p class="text-indigo-100 text-sm md:text-base">你是一位深愛孩子的家長。在校園生活中，你的每一個回應，都在塑造孩子的未來。你會成為直升機父母嗎？</p>
+        </header>
+
+        <!-- Stats Bar (Hidden on Start Screen) -->
+        <div id="stats-container" class="hidden p-6 bg-gray-50 border-b border-gray-200">
+            <div class="grid grid-cols-3 gap-4">
+                <!-- 獨立性 -->
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span>孩子獨立性</span>
+                        <span id="stat-ind-val">50%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="stat-ind-bar" class="bg-green-500 h-2.5 rounded-full stat-bar-transition" style="width: 50%"></div>
+                    </div>
+                </div>
+                <!-- 壓力值 -->
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span>孩子壓力值</span>
+                        <span id="stat-str-val">50%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="stat-str-bar" class="bg-yellow-500 h-2.5 rounded-full stat-bar-transition" style="width: 50%"></div>
+                    </div>
+                </div>
+                <!-- 親師關係 -->
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span>親師/校園關係</span>
+                        <span id="stat-rel-val">50%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="stat-rel-bar" class="bg-blue-500 h-2.5 rounded-full stat-bar-transition" style="width: 50%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="main-content" class="p-6 md:p-8">
+            
+            <!-- Start Screen -->
+            <div id="start-screen" class="text-center">
+                <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Parent&backgroundColor=e2e8f0" alt="Parent Avatar" class="w-32 h-32 mx-auto rounded-full mb-6 bg-gray-100">
+                <h2 class="text-xl font-bold mb-4">歡迎來到小明的校園生活</h2>
+                <p class="text-gray-600 mb-8 text-left">
+                    你的孩子「小明」今年剛上小學。學校是一個小社會，充滿了挑戰與挫折。<br><br>
+                    作為家長，當小明遇到困難時，你會選擇<b>「過度介入 (Over-involvement)」</b>幫他掃除一切障礙，還是選擇<b>「適度放手」</b>讓他承擔<b>「自然後果 (Natural Consequences)」</b>？<br><br>
+                    請根據接下來的情境做出你的選擇。
+                </p>
+                <button onclick="startGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full transition duration-300 w-full md:w-auto shadow-lg shadow-indigo-500/30">
+                    開始模擬
+                </button>
+            </div>
+
+            <!-- Game Screen -->
+            <div id="game-screen" class="hidden">
+                <div class="mb-2 text-sm text-gray-500 font-bold" id="scenario-counter">情境 1 / 5</div>
+                <h2 id="scenario-title" class="text-xl font-bold text-gray-800 mb-4 border-l-4 border-indigo-500 pl-3"></h2>
+                <p id="scenario-desc" class="text-gray-600 mb-6 leading-relaxed bg-gray-50 p-4 rounded-lg"></p>
+                
+                <div class="mb-6">
+                    <p class="text-xs text-gray-500 font-bold mb-2">情境相關教育標籤：</p>
+                    <div id="scenario-tags"></div>
+                </div>
+
+                <div id="choices-container" class="space-y-4">
+                    <!-- Choices will be injected here -->
+                </div>
+            </div>
+
+            <!-- Result Screen -->
+            <div id="result-screen" class="hidden text-center">
+                <div id="result-icon" class="text-6xl mb-4"></div>
+                <h2 id="result-title" class="text-2xl font-bold mb-4"></h2>
+                <p id="result-desc" class="text-gray-600 mb-6 leading-relaxed text-left bg-gray-50 p-4 rounded-lg border border-gray-200"></p>
+                
+                <div class="mb-8 text-left">
+                    <h3 class="font-bold text-gray-800 mb-2">最終狀態分析：</h3>
+                    <ul class="text-sm text-gray-600 space-y-2" id="result-analysis">
+                    </ul>
+                </div>
+
+                <button onclick="location.reload()" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-8 rounded-full transition duration-300 w-full shadow-lg">
+                    重新體驗
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Game Data ---
+        let stats = {
+            independence: 50, // 獨立性
+            stress: 50,       // 壓力值
+            schoolRel: 50     // 親師關係
+        };
+
+        let currentScenarioIndex = 0;
+
+        const scenarios = [
+            {
+                title: "早晨的遺忘：作業本危機",
+                desc: "小明出門上學後，你發現他的作業本忘在餐桌上了。第一節課就是要求嚴格的老師的課，小明一定會被老師問話。",
+                tags: ["#自然後果 (Natural consequences)", "#剝奪責任感", "#直升機父母 (Helicopter Parenting)"],
+                choices: [
+                    {
+                        text: "立刻請假，飛車衝到學校，不顧警衛攔阻闖入教室親手交給他，並當著同學的面警告他下次別再犯。",
+                        effects: { ind: -15, str: +15, rel: -20 },
+                        feedback: "過度代勞與公開指責：你剝奪了孩子為自己行為負責的機會，同時破壞了校園秩序，讓孩子感到羞愧。"
+                    },
+                    {
+                        text: "送到學校警衛室，請警衛轉交，不打擾老師上課。",
+                        effects: { ind: -10, str: 0, rel: -5 },
+                        feedback: "隱形直升機：雖然沒干擾上課，但你依然幫他解決了問題。孩子學到的是「反正忘記了，父母會幫我送來」。"
+                    },
+                    {
+                        text: "把作業本留在桌上。讓他自己面對老師的詢問，體會忘記帶東西的「自然後果」。",
+                        effects: { ind: +15, str: +5, rel: +5 },
+                        feedback: "適度放手：孩子今天雖然會受挫，但他明天出門前一定會自己檢查書包。這是培養責任感的最佳契機。"
+                    }
+                ]
+            },
+            {
+                title: "操場上的摩擦：擦傷的膝蓋",
+                desc: "放學時，小明哭著說今天在操場排隊時，被同學小華推了一下跌倒，膝蓋有一點紅紅的破皮。小明看起來很委屈。",
+                tags: ["#怪獸家長 (Monster Parent)", "#情緒引導", "#過度防衛", "#越俎代庖"],
+                choices: [
+                    {
+                        text: "在班級家長LINE群組大罵小華家長，並打電話給班導師要求嚴懲小華，否則立刻投訴教育局。",
+                        effects: { ind: -10, str: +20, rel: -30 },
+                        feedback: "情緒勒索與過度防衛：典型的「怪獸家長」行為。這不僅讓老師恐懼，也會讓其他同學家長要求孩子遠離小明。"
+                    },
+                    {
+                        text: "隔天親自到校門口堵小華，嚴厲警告他以後不准靠近小明，替孩子出氣。",
+                        effects: { ind: -15, str: +15, rel: -20 },
+                        feedback: "越俎代庖：你代替孩子處理了人際衝突。這讓孩子失去練習解決同儕摩擦的機會，也可能導致孩子被同儕孤立。"
+                    },
+                    {
+                        text: "安撫小明情緒，詢問他當時的情況。教導他下次遇到這種事，可以怎麼堅定地拒絕或尋求老師幫助。",
+                        effects: { ind: +15, str: -10, rel: +10 },
+                        feedback: "賦權 (Empowerment)：你同理了孩子的情緒，並將解決問題的方法與權力交還給他，提升了他的社會技巧。"
+                    }
+                ]
+            },
+            {
+                title: "學業的挫折：不及格的平時測驗",
+                desc: "小明帶回一張只考了 55 分的中文隨堂測驗卷。他看起來非常氣餒，低著頭不敢看你。",
+                tags: ["#成就焦慮", "#包辦代替", "#成長型思維 (Growth Mindset)", "#割草機父母 (Lawnmower Parent)"],
+                choices: [
+                    {
+                        text: "認定是老師出題太難！立刻幫他報名三家補習班，並規定他每天多寫兩小時評量，你在旁邊拿著橡皮擦親自盯著。",
+                        effects: { ind: -15, str: +30, rel: -10 },
+                        feedback: "微觀管理 (Micro-management)：你將自己的成就焦慮轉移到孩子身上。高壓監控會扼殺他的學習內在動機。"
+                    },
+                    {
+                        text: "怕他被老師罵，你親自拿筆幫他把錯誤的題目改成正確答案，讓他直接交差了事。",
+                        effects: { ind: -20, str: -5, rel: -10 },
+                        feedback: "虛假成就與包辦：你為了保護孩子的自尊而作假。這傳遞了一個錯誤訊息：逃避失敗比誠實面對更重要。"
+                    },
+                    {
+                        text: "抱抱他，告訴他分數不代表一切。陪他一起訂正錯誤，找出不懂的地方，並稱讚他願意面對錯誤的勇氣。",
+                        effects: { ind: +10, str: -15, rel: +5 },
+                        feedback: "建立成長型思維：你將失敗視為學習的過程，提供心理支持而非過度干預，幫助孩子建立心理韌性 (Resilience)。"
+                    }
+                ]
+            },
+            {
+                title: "社團的選擇：混亂的美術社",
+                desc: "學校要求選填社團。你希望他參加對升學有幫助的「奧林匹亞數學社」，但他哭鬧著想參加每次都會弄髒衣服的「創意泥巴美術社」。",
+                tags: ["#控制慾", "#自主權剝奪", "#自我效能感", "#直升機教養"],
+                choices: [
+                    {
+                        text: "無視他的意願，直接在志願表上填寫數學社，並告訴他：「我是為你好，你長大就會感謝我。」",
+                        effects: { ind: -20, str: +15, rel: 0 },
+                        feedback: "威權控制：「我是為你好」是剝奪孩子自主權最常見的藉口。這會導致孩子未來習慣依賴他人決策，缺乏主見。"
+                    },
+                    {
+                        text: "勉強同意他參加美術社，但每天社團結束後，你都衝進學校幫他清理畫具、洗手洗臉，不讓他自己動手。",
+                        effects: { ind: -15, str: +5, rel: -5 },
+                        feedback: "隱性剝奪：看似尊重選擇，實則剝奪了他承擔選擇背後責任（清理善後）的機會，這是另一種形式的直升機盤旋。"
+                    },
+                    {
+                        text: "同意他參加美術社，但約法三章：弄髒的衣服必須自己學習手洗，畫具也要自己清理。如果做不到就退社。",
+                        effects: { ind: +15, str: +5, rel: 0 },
+                        feedback: "權利與責任對等：給予自主權的同時，也要求其承擔相應的責任。這能大幅提升孩子的自我管理能力。"
+                    }
+                ]
+            },
+            {
+                title: "違規的手機：偷偷帶來的便利",
+                desc: "學校明文規定學生禁止攜帶手機到校。但為了放學後能隨時掌握小明的位置、方便聯絡，你正在考慮是否要讓他偷偷帶手機。",
+                tags: ["#校園規範", "#特權意識", "#過度監控 (Over-monitoring)"],
+                choices: [
+                    {
+                        text: "讓他把手機藏在書包底層，並教他如果被老師發現就說「是不小心放進去的」。",
+                        effects: { ind: -10, str: +15, rel: -25 },
+                        feedback: "破壞規範與教唆說謊：你為了滿足自己的控制慾和安心感，不僅帶頭破壞校規，還教導孩子欺騙，這會嚴重扭曲孩子的價值觀。"
+                    },
+                    {
+                        text: "讓他帶具有定位和通話功能的智慧手錶，心想「這應該不算手機吧」，不打算事先詢問老師。",
+                        effects: { ind: -5, str: +5, rel: -10 },
+                        feedback: "遊走邊緣與隱性焦慮：雖然看似折衷，但本質上仍是出於家長的過度焦慮，且遊走在校規邊緣，若上課響起仍會造成困擾與破壞互信。"
+                    },
+                    {
+                        text: "嚴格遵守校規，不帶手機。和孩子約定好放學後的等候地點，並教導他若有急事可以找老師或校門口警衛借電話。",
+                        effects: { ind: +15, str: -5, rel: +10 },
+                        feedback: "尊重規範與培養應變能力：你教導孩子遵守群體規則，並給予他應對突發狀況的正確管道（求助師長），而非讓他依賴電子設備與你的過度監控。"
+                    }
+                ]
+            },
+            {
+                title: "午餐的抱怨：難吃的青菜",
+                desc: "小明連著幾天抱怨學校營養午餐的青菜很苦、很難吃，他中午幾乎都沒吃，回家一直喊餓。",
+                tags: ["#適應力培養", "#延遲滿足", "#過度介入校園規範", "#環境適應"],
+                choices: [
+                    {
+                        text: "心疼不已。明天開始每天中午親自送他最愛吃的日式便當到校門口，並打電話給校長室強烈抗議午餐品質。",
+                        effects: { ind: -15, str: +5, rel: -25 },
+                        feedback: "破壞群體規範：你讓孩子覺得自己擁有「特權」，不必適應環境。這嚴重破壞了學校的常規，也損害了親師關係。"
+                    },
+                    {
+                        text: "在書包裡塞滿巧克力和餅乾，偷偷告訴他：「午餐難吃就倒掉，吃零食充飢，別讓老師發現。」",
+                        effects: { ind: -10, str: 0, rel: -10 },
+                        feedback: "逃避問題與欺瞞：你教導孩子用不健康且逃避的方式面對不適應的環境，甚至鼓勵破壞規則。"
+                    },
+                    {
+                        text: "告訴他群體生活需要適應不同的口味。鼓勵他至少吃兩口青菜，真的吃不飽，回家後會準備營養的點心給他。",
+                        effects: { ind: +10, str: -5, rel: +5 },
+                        feedback: "培養環境適應力：你沒有立刻消除他的不適感，而是引導他適應現實環境，這有助於培養他的挫折忍受力。"
+                    }
+                ]
+            }
+        ];
+
+        // --- Core Functions ---
+
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('stats-container').classList.remove('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            updateUI();
+            renderScenario();
+        }
+
+        function updateUI() {
+            // Constrain stats between 0 and 100
+            stats.independence = Math.max(0, Math.min(100, stats.independence));
+            stats.stress = Math.max(0, Math.min(100, stats.stress));
+            stats.schoolRel = Math.max(0, Math.min(100, stats.schoolRel));
+
+            // Update text
+            document.getElementById('stat-ind-val').innerText = stats.independence + '%';
+            document.getElementById('stat-str-val').innerText = stats.stress + '%';
+            document.getElementById('stat-rel-val').innerText = stats.schoolRel + '%';
+
+            // Update bars
+            const indBar = document.getElementById('stat-ind-bar');
+            indBar.style.width = stats.independence + '%';
+            if (stats.independence < 30) indBar.className = "h-2.5 rounded-full stat-bar-transition bg-red-500";
+            else if (stats.independence < 60) indBar.className = "h-2.5 rounded-full stat-bar-transition bg-yellow-500";
+            else indBar.className = "h-2.5 rounded-full stat-bar-transition bg-green-500";
+
+            const strBar = document.getElementById('stat-str-bar');
+            strBar.style.width = stats.stress + '%';
+            if (stats.stress > 70) strBar.className = "h-2.5 rounded-full stat-bar-transition bg-red-500";
+            else if (stats.stress > 40) strBar.className = "h-2.5 rounded-full stat-bar-transition bg-yellow-500";
+            else strBar.className = "h-2.5 rounded-full stat-bar-transition bg-green-500";
+
+            const relBar = document.getElementById('stat-rel-bar');
+            relBar.style.width = stats.schoolRel + '%';
+            if (stats.schoolRel < 40) relBar.className = "h-2.5 rounded-full stat-bar-transition bg-red-500";
+            else if (stats.schoolRel < 70) relBar.className = "h-2.5 rounded-full stat-bar-transition bg-blue-400";
+            else relBar.className = "h-2.5 rounded-full stat-bar-transition bg-blue-600";
+        }
+
+        function renderScenario() {
+            const scenario = scenarios[currentScenarioIndex];
+            
+            // Re-trigger animation
+            const gameScreen = document.getElementById('game-screen');
+            gameScreen.classList.remove('fade-in');
+            void gameScreen.offsetWidth; // trigger reflow
+            gameScreen.classList.add('fade-in');
+
+            document.getElementById('scenario-counter').innerText = `情境 ${currentScenarioIndex + 1} / ${scenarios.length}`;
+            document.getElementById('scenario-title').innerText = scenario.title;
+            document.getElementById('scenario-desc').innerText = scenario.desc;
+
+            // Render Tags
+            const tagsContainer = document.getElementById('scenario-tags');
+            tagsContainer.innerHTML = '';
+            scenario.tags.forEach(tag => {
+                const span = document.createElement('span');
+                span.className = 'tag bg-indigo-100 text-indigo-800 border border-indigo-200';
+                span.innerText = tag;
+                tagsContainer.appendChild(span);
+            });
+
+            // Render Choices
+            const choicesContainer = document.getElementById('choices-container');
+            choicesContainer.innerHTML = '';
+            
+            scenario.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500";
+                btn.innerHTML = `<span class="font-bold text-indigo-600 mr-2">${String.fromCharCode(65 + index)}.</span> ${choice.text}`;
+                btn.onclick = () => handleChoice(choice);
+                choicesContainer.appendChild(btn);
+            });
+        }
+
+        function handleChoice(choice) {
+            // Apply effects
+            stats.independence += choice.effects.ind;
+            stats.stress += choice.effects.str;
+            stats.schoolRel += choice.effects.rel;
+            
+            updateUI();
+
+            // Show feedback alert (using standard JS alert for simplicity in single HTML, but formatted as text)
+            // Instead of native alert, let's create a temporary in-DOM notification for better UX.
+            showFeedbackModal(choice.feedback, () => {
+                currentScenarioIndex++;
+                if (currentScenarioIndex < scenarios.length) {
+                    renderScenario();
+                } else {
+                    endGame();
+                }
+            });
+        }
+
+        function showFeedbackModal(text, callback) {
+            // Disable choices during feedback
+            const buttons = document.querySelectorAll('#choices-container button');
+            buttons.forEach(b => b.disabled = true);
+
+            const feedbackDiv = document.createElement('div');
+            feedbackDiv.className = "mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded shadow-sm fade-in";
+            feedbackDiv.innerHTML = `<p class="font-bold mb-1">專家解析：</p><p class="text-sm">${text}</p>
+                                     <button id="next-btn" class="mt-3 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold py-1 px-4 rounded">繼續下一個情境 ➔</button>`;
+            
+            document.getElementById('choices-container').appendChild(feedbackDiv);
+            
+            document.getElementById('next-btn').onclick = () => {
+                feedbackDiv.remove();
+                callback();
+            };
+        }
+
+        function endGame() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('result-screen').classList.add('fade-in');
+
+            let title = "";
+            let desc = "";
+            let icon = "";
+
+            // Evaluate ending based on stats
+            if (stats.independence < 30 || stats.stress > 70) {
+                title = "終局：溫室裡窒息的脆弱花朵";
+                icon = "🥀";
+                desc = "你的過度保護與回應，成為了盤旋在孩子頭頂的「直升機」。你替他清除了校園中的所有障礙，但也剝奪了他學習飛翔的機會。小明變得極度依賴、缺乏自信，面對一點點挫折就會產生巨大的焦慮。在老師眼中，家長過度的干預也讓教育工作變得窒礙難行。";
+            } else if (stats.schoolRel < 30) {
+                title = "終局：校園裡的「頭痛人物」";
+                icon = "🦖";
+                desc = "你化身為「怪獸家長 / 恐龍家長」，只要孩子受到一點委屈，你就會對校方或同學發動攻擊。雖然你覺得自己在保護孩子，但實際上，過度的防衛機制破壞了親師互信。小明在班上逐漸被同學邊緣化，因為大家害怕惹怒你。孩子學到的是將過錯怪罪於環境，而非自我反省。";
+            } else if (stats.independence >= 60 && stats.stress <= 60) {
+                title = "終局：展翅高飛的雛鷹";
+                icon = "🦅";
+                desc = "恭喜你！你成功克制了替孩子解決一切的衝動。你提供了「鷹架 (Scaffolding)」式的支持：在孩子需要時給予情感安慰與方法引導，但在執行面適度放手，讓孩子承受「自然後果」。小明在挫折中長出了心理韌性，成為一個獨立、自信且能適應校園生活的人。";
+            } else {
+                title = "終局：搖擺不定的教養鋼索";
+                icon = "⚖️";
+                desc = "你在「保護」與「放手」之間掙扎。有時你過度介入，有時又嘗試讓他獨立。小明在校園中雖然沒有遭遇大危機，但也顯得有些缺乏安全感。教養是一條漫長的鋼索，嘗試給予更多信任，減少微觀管理，孩子會表現得比你想像中更好。";
+            }
+
+            document.getElementById('result-icon').innerText = icon;
+            document.getElementById('result-title').innerText = title;
+            document.getElementById('result-desc').innerText = desc;
+
+            const analysisList = document.getElementById('result-analysis');
+            analysisList.innerHTML = `
+                <li><b class="${stats.independence < 50 ? 'text-red-500' : 'text-green-600'}">獨立性 (${stats.independence}%)：</b> 反映了孩子解決問題與生活自理的能力。過度代勞會降低此數值。</li>
+                <li><b class="${stats.stress > 60 ? 'text-red-500' : 'text-green-600'}">壓力值 (${stats.stress}%)：</b> 來自家長的過度期盼、微觀管理或過度保護產生的焦慮轉移。</li>
+                <li><b class="${stats.schoolRel < 50 ? 'text-red-500' : 'text-blue-600'}">親師關係 (${stats.schoolRel}%)：</b> 反映家長是否能尊師重道，並遵守校園群體規範，拒絕成為怪獸家長。</li>
+            `;
+        }
+    </script>
+</body>
+</html>
